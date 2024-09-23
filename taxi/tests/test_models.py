@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django.urls import reverse
 from taxi.models import Manufacturer, Car
 
 
@@ -28,3 +29,24 @@ class ModelsTests(TestCase):
         manufacturer = Manufacturer.objects.create(name="test")
         car = Car.objects.create(model="Test", manufacturer=manufacturer)
         self.assertEqual(str(car), f"{car.model}")
+
+
+class CarListViewTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username="testuser",
+            password="password")
+        self.manufacturer = Manufacturer.objects.create(
+            name="Audi",
+            country="Germany")
+        Car.objects.create(model="Audi", manufacturer=self.manufacturer)
+        Car.objects.create(model="BMW", manufacturer=self.manufacturer)
+
+    def test_search_return_correct_cars(self):
+        self.client.login(username="testuser", password="password")
+        response = self.client.get(reverse(
+            "taxi:car-list"),
+            {"search": "Audi"})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Audi")
+        self.assertContains(response, "BMW")
